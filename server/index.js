@@ -17,8 +17,8 @@ app.get('/api/health', (req, res) => {
 
 // Routes (will be added per phase)
 app.use('/api/auth', require('./routes/auth'));
-// app.use('/api/events', require('./routes/events'));
-// app.use('/api/registrations', require('./routes/registrations'));
+app.use('/api/events', require('./routes/events'));
+app.use('/api/registrations', require('./routes/registrations'));
 // app.use('/api/analytics', require('./routes/analytics'));
 
 // Error handler (must be last)
