@@ -31,7 +31,14 @@ const registrationSchema = new mongoose.Schema({
   certificateUrl: { type: String, default: '' },
 }, { timestamps: true });
 
-// Prevent duplicate registration
-registrationSchema.index({ event: 1, user: 1 }, { unique: true });
+// Prevent duplicate active registration (allows re-register after cancellation)
+registrationSchema.index(
+  { event: 1, user: 1 },
+  { unique: true, partialFilterExpression: { status: { $ne: 'cancelled' } } },
+);
+
+// Indexes for common queries
+registrationSchema.index({ user: 1, createdAt: -1 });
+registrationSchema.index({ event: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Registration', registrationSchema);

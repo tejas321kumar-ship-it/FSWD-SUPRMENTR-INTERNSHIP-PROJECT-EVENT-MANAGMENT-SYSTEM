@@ -1,37 +1,173 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { HiOutlineCalendar, HiOutlineUsers, HiOutlineTicket, HiOutlineTrendingUp } from 'react-icons/hi';
+import { CalendarDays, Users, Ticket, TrendingUp, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
 
 export default function AdminDashboard() {
   const [ov, setOv] = useState(null);
   const [loading, setLoading] = useState(true);
-  useEffect(()=>{api.get('/analytics/overview').then(r=>setOv(r.data.overview)).finally(()=>setLoading(false))},[]);
 
-  if (loading) return <div className="page-loader">Loading...</div>;
-  if (!ov) return <div className="empty-state"><h3>Unable to load</h3></div>;
+  useEffect(() => {
+    api.get('/analytics/overview')
+      .then(r => setOv(r.data.overview))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!ov) {
+    return (
+      <div className="container-wide py-16 text-center">
+        <h3 className="text-lg font-semibold">Unable to load data</h3>
+        <p className="text-sm text-muted-foreground mt-1">Please try again later</p>
+      </div>
+    );
+  }
+
+  const stats = [
+    { label: 'Total events', value: ov.totalEvents, icon: CalendarDays, color: 'text-blue-600 bg-blue-50' },
+    { label: 'Registrations', value: ov.totalRegistrations, icon: Ticket, color: 'text-emerald-600 bg-emerald-50' },
+    { label: 'Categories', value: ov.eventsByCategory?.length || 0, icon: Users, color: 'text-purple-600 bg-purple-50' },
+    { label: 'This month', value: ov.monthlyTrend?.length > 0 ? ov.monthlyTrend[ov.monthlyTrend.length - 1].count : 0, icon: TrendingUp, color: 'text-amber-600 bg-amber-50' },
+  ];
+
+  const maxCat = Math.max(...(ov.eventsByCategory?.map(x => x.count) || [1]));
+  const maxTrend = Math.max(...(ov.monthlyTrend?.map(t => t.count) || [1]));
 
   return (
-    <div className="dashboard">
-      <div className="dashboard-header"><div><h1>Admin Dashboard</h1><p>System overview</p></div></div>
-      <div className="dashboard-stats four-col">
-        <div className="stat-card accent-blue"><HiOutlineCalendar size={28}/><div><span className="stat-value">{ov.totalEvents}</span><span className="stat-label">Events</span></div></div>
-        <div className="stat-card accent-green"><HiOutlineTicket size={28}/><div><span className="stat-value">{ov.totalRegistrations}</span><span className="stat-label">Registrations</span></div></div>
-        <div className="stat-card accent-purple"><HiOutlineUsers size={28}/><div><span className="stat-value">{ov.eventsByCategory?.length}</span><span className="stat-label">Categories</span></div></div>
-        <div className="stat-card accent-orange"><HiOutlineTrendingUp size={28}/><div><span className="stat-value">{ov.monthlyTrend?.length>0?ov.monthlyTrend[ov.monthlyTrend.length-1].count:0}</span><span className="stat-label">This Month</span></div></div>
+    <div className="container-wide py-8 md:py-12">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Admin dashboard</h1>
+        <p className="mt-1 text-muted-foreground">System-wide overview and analytics</p>
       </div>
-      <div className="admin-grid">
-        <div className="card"><h2>By Category</h2><div className="category-bars">
-          {ov.eventsByCategory?.map(c=>{const mx=Math.max(...ov.eventsByCategory.map(x=>x.count));return(
-            <div key={c.category} className="category-row"><span className="category-name">{c.category}</span><div className="category-bar-wrapper"><div className="category-bar" style={{width:`${(c.count/mx)*100}%`}}/></div><span className="category-count">{c.count}</span></div>
-          )})}</div></div>
-        <div className="card"><h2>Monthly Trend</h2>{ov.monthlyTrend?.length>0?<div className="trend-bars tall">
-          {ov.monthlyTrend.map(m=>{const mx=Math.max(...ov.monthlyTrend.map(t=>t.count));return(
-            <div key={m.month} className="trend-bar"><div className="bar" style={{height:`${Math.max(8,(m.count/mx)*100)}%`}}/><span>{m.month.slice(5)}</span></div>
-          )})}</div>:<p className="text-muted">No data</p>}</div>
+
+      {/* Stats */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map(({ label, value, icon: Icon, color }) => (
+          <Card key={label}>
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${color}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">{value}</div>
+                <div className="text-xs text-muted-foreground">{label}</div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-      <div className="card"><h2>Recent Events</h2><div className="events-table"><table><thead><tr><th>Title</th><th>Category</th><th>Registrations</th><th>Date</th></tr></thead><tbody>
-        {ov.recentEvents?.map(ev=><tr key={ev._id}><td><strong>{ev.title}</strong></td><td><span className="tag">{ev.category}</span></td><td>{ev.registeredCount}/{ev.capacity}</td><td>{new Date(ev.startDate).toLocaleDateString()}</td></tr>)}
-      </tbody></table></div></div>
+
+      {/* Charts */}
+      <div className="mb-8 grid gap-6 lg:grid-cols-2">
+        {/* By Category */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Events by category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {ov.eventsByCategory?.length > 0 ? (
+              <div className="space-y-3">
+                {ov.eventsByCategory.map(c => (
+                  <div key={c.category} className="flex items-center gap-3">
+                    <span className="w-24 text-sm text-muted-foreground capitalize shrink-0">
+                      {c.category}
+                    </span>
+                    <div className="flex-1 h-6 rounded-md bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all duration-500"
+                        style={{ width: `${(c.count / maxCat) * 100}%` }}
+                      />
+                    </div>
+                    <span className="w-8 text-right text-sm font-medium tabular-nums">{c.count}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">No data available</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Monthly Trend */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Monthly trend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {ov.monthlyTrend?.length > 0 ? (
+              <div className="flex items-end gap-2 h-48">
+                {ov.monthlyTrend.map(m => (
+                  <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full gap-2">
+                    <div
+                      className="w-full max-w-[40px] bg-primary rounded-t-md transition-all duration-500 hover:bg-primary/80 relative group"
+                      style={{ height: `${Math.max(4, (m.count / maxTrend) * 100)}%` }}
+                    >
+                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                        {m.count}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{m.month.slice(5)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">No data available</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Events */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Recent events</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {ov.recentEvents?.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Registrations</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ov.recentEvents.map(ev => (
+                  <TableRow key={ev._id}>
+                    <TableCell className="font-medium">{ev.title}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize font-normal">{ev.category}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {ev.registeredCount}/{ev.capacity}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {new Date(ev.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-12">No recent events</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -1,10 +1,22 @@
 const Event = require('../models/Event');
 
+const ALLOWED_EVENT_FIELDS = [
+  'title', 'description', 'category', 'venue', 'startDate', 'endDate',
+  'capacity', 'price', 'tags', 'coverImage', 'status', 'allowTeams', 'maxTeamSize',
+];
+
+const pickFields = (body, fields) => {
+  const obj = {};
+  fields.forEach(f => { if (body[f] !== undefined) obj[f] = body[f]; });
+  return obj;
+};
+
 // POST /api/events — organizer creates event
 exports.createEvent = async (req, res, next) => {
   try {
-    req.body.organizer = req.user._id;
-    const event = await Event.create(req.body);
+    const data = pickFields(req.body, ALLOWED_EVENT_FIELDS);
+    data.organizer = req.user._id;
+    const event = await Event.create(data);
     res.status(201).json({ success: true, event });
   } catch (err) {
     next(err);
@@ -14,33 +26,36 @@ exports.createEvent = async (req, res, next) => {
 // GET /api/events — public listing with filters
 exports.getEvents = async (req, res, next) => {
   try {
-    const { category, status, search, page = 1, limit = 12 } = req.query;
+    const { category, status, search } = req.query;
     const filter = {};
 
     if (category) filter.category = category;
     if (status) filter.status = status;
     else filter.status = 'published'; // default to published
     if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
+        { title: { $regex: escaped, $options: 'i' } },
+        { description: { $regex: escaped, $options: 'i' } },
       ];
     }
 
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 12));
     const skip = (page - 1) * limit;
     const [events, total] = await Promise.all([
       Event.find(filter)
         .populate('organizer', 'name email')
         .sort({ startDate: 1 })
         .skip(skip)
-        .limit(Number(limit)),
+        .limit(limit),
       Event.countDocuments(filter),
     ]);
 
     res.json({
       success: true,
       events,
-      pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / limit) },
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
   } catch (err) {
     next(err);
@@ -69,7 +84,8 @@ exports.updateEvent = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized to edit this event' });
     }
 
-    event = await Event.findByIdAndUpdate(req.params.id, req.body, {
+    const data = pickFields(req.body, ALLOWED_EVENT_FIELDS);
+    event = await Event.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
     });

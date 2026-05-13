@@ -5,18 +5,24 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "make-admin": "node scripts/makeAdmin.js",
+    "smoke-test": "powershell -ExecutionPolicy Bypass -File scripts/smokeTest.ps1"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.4.1",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",
-    "express-validator": "^7.2.1",
-    "qrcode": "^1.5.4",
-    "pdfkit": "^0.16.0"
+    "morgan": "^1.10.1",
+    "multer": "^2.1.1",
+    "pdfkit": "^0.16.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

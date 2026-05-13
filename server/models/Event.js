@@ -57,4 +57,9 @@ eventSchema.virtual('isFull').get(function () {
 // Ensure virtuals show in JSON
 eventSchema.set('toJSON', { virtuals: true });
 
+// Indexes for common queries
+eventSchema.index({ status: 1, startDate: 1 });
+eventSchema.index({ organizer: 1, createdAt: -1 });
+eventSchema.index({ category: 1 });
+
 module.exports = mongoose.model('Event', eventSchema);

@@ -34,18 +34,21 @@ exports.getEventAnalytics = async (req, res, next) => {
     // Team vs individual breakdown
     const teamCount = registrations.filter(r => r.team).length;
 
+    const activeRegistrations = registrations.filter(r => r.status !== 'cancelled');
+
     res.json({
       success: true,
       analytics: {
         totalRegistrations: registrations.length,
+        activeRegistrations: activeRegistrations.length,
         capacity: event.capacity,
-        fillRate: Math.round((registrations.length / event.capacity) * 100),
+        fillRate: event.capacity > 0 ? Math.round((activeRegistrations.length / event.capacity) * 100) : 0,
         statusBreakdown,
         dailyTrend: dailyTrend.map(d => ({ date: d._id, count: d.count })),
         teamRegistrations: teamCount,
         individualRegistrations: registrations.length - teamCount,
         checkedIn: statusBreakdown.attended || 0,
-        revenue: registrations.length * event.price,
+        revenue: activeRegistrations.length * event.price,
       },
     });
   } catch (err) {
