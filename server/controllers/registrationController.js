@@ -3,6 +3,7 @@ const Registration = require('../models/Registration');
 const Event = require('../models/Event');
 const Team = require('../models/Team');
 const QRCode = require('qrcode');
+const { sendTicketEmail } = require('../config/email');
 
 const generateTicketCode = () =>
   `EVH-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
@@ -62,6 +63,17 @@ exports.registerForEvent = async (req, res, next) => {
       qrData,
     });
 
+    // Fire-and-forget email — don't block the response
+    sendTicketEmail({
+      to: req.user.email,
+      name: req.user.name,
+      eventTitle: event.title,
+      eventDate: event.startDate,
+      venue: event.venue?.isOnline ? 'Online' : (event.venue?.name || 'TBA'),
+      ticketCode,
+      qrData,
+    });
+
     res.status(201).json({ success: true, registration });
   } catch (err) {
     next(err);
@@ -106,6 +118,16 @@ exports.createTeamRegistration = async (req, res, next) => {
       event: event._id,
       user: req.user._id,
       team: team._id,
+      ticketCode,
+      qrData,
+    });
+
+    sendTicketEmail({
+      to: req.user.email,
+      name: req.user.name,
+      eventTitle: event.title,
+      eventDate: event.startDate,
+      venue: event.venue?.isOnline ? 'Online' : (event.venue?.name || 'TBA'),
       ticketCode,
       qrData,
     });
@@ -155,6 +177,16 @@ exports.joinTeam = async (req, res, next) => {
       event: event._id,
       user: req.user._id,
       team: team._id,
+      ticketCode,
+      qrData,
+    });
+
+    sendTicketEmail({
+      to: req.user.email,
+      name: req.user.name,
+      eventTitle: event.title,
+      eventDate: event.startDate,
+      venue: event.venue?.isOnline ? 'Online' : (event.venue?.name || 'TBA'),
       ticketCode,
       qrData,
     });
