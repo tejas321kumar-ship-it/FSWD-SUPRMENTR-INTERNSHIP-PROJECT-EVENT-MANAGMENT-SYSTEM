@@ -1,7 +1,15 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// Force IPv4 DNS lookup — Render blocks outbound IPv6
+const ipv4Lookup = (hostname, options, cb) => {
+  dns.resolve4(hostname, (err, addresses) => {
+    if (err) return cb(err);
+    cb(null, addresses[0], 4);
+  });
+};
 
 // Gmail SMTP transport — uses App Password (not your regular password)
-// force IPv4 (family:4) because Render blocks outbound IPv6
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
@@ -11,7 +19,7 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
   tls: { rejectUnauthorized: false },
-  family: 4,
+  dnsOptions: { family: 4, lookup: ipv4Lookup },
 });
 
 /**
