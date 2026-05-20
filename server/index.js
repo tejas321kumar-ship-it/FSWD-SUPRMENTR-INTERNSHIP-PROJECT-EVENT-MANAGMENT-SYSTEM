@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -49,8 +48,7 @@ if (process.env.NODE_ENV !== 'test') {
 
 app.use(express.json({ limit: '5mb' }));
 
-// Serve uploaded files as static assets
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Images are served via Cloudinary CDN — no local static uploads needed
 
 // Rate limiting — only for login/register/password endpoints, not /me or /profile
 // (authenticated users hit /me on every page load, so global limit would lock them out).
