@@ -80,7 +80,8 @@ export default function OrganizerDashboard() {
     const payload = {
       title: form.title, description: form.description, category: form.category,
       venue: { name: form['venue.name'], city: form['venue.city'], isOnline: form['venue.isOnline'] },
-      startDate: form.startDate, endDate: form.endDate,
+      startDate: new Date(form.startDate).toISOString(),
+      endDate: new Date(form.endDate).toISOString(),
       capacity: +form.capacity, price: +form.price,
       tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
       allowTeams: form.allowTeams, maxTeamSize: +form.maxTeamSize, status: form.status,
@@ -102,12 +103,20 @@ export default function OrganizerDashboard() {
     }
   };
 
+  const toLocalDatetime = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const offset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
   const edit = (ev) => {
     setForm({
       title: ev.title, description: ev.description, category: ev.category,
       'venue.name': ev.venue?.name || '', 'venue.city': ev.venue?.city || '',
       'venue.isOnline': ev.venue?.isOnline || false,
-      startDate: ev.startDate?.slice(0, 16), endDate: ev.endDate?.slice(0, 16),
+      startDate: toLocalDatetime(ev.startDate), endDate: toLocalDatetime(ev.endDate),
       capacity: ev.capacity, price: ev.price,
       tags: ev.tags?.join(', ') || '',
       allowTeams: ev.allowTeams, maxTeamSize: ev.maxTeamSize, status: ev.status,
