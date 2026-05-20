@@ -1,12 +1,17 @@
 const nodemailer = require('nodemailer');
 
 // Gmail SMTP transport — uses App Password (not your regular password)
+// force IPv4 (family:4) because Render blocks outbound IPv6
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  tls: { rejectUnauthorized: false },
+  family: 4,
 });
 
 /**
